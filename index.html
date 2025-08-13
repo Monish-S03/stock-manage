@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Management App</title>
+<style>
+  /* Base Styles */
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f4f4f4;
+  }
+  header {
+    background: #333;
+    color: #fff;
+    padding: 1rem;
+    text-align: center;
+  }
+  main {
+    max-width: 1100px;
+    margin: auto;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 8px;
+  }
+  h2 {
+    margin-top: 0;
+    text-align: center;
+  }
+  form {
+    display: grid;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+  }
+  label {
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+  }
+  input, textarea, button {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+  button {
+    background: #333;
+    color: #fff;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+  }
+  button:hover {
+    background: #444;
+  }
+  .dashboard {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+  }
+  .card {
+    background: #fafafa;
+    padding: 1rem;
+    flex: 1;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+  }
+  #search {
+    width: 100%;
+    padding: 0.6rem;
+    margin-top: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  th, td {
+    border: 1px solid #ccc;
+    padding: 0.8rem;
+    text-align: left;
+  }
+  th {
+    background: #eee;
+    cursor: pointer;
+  }
+  td button {
+    margin-right: 0.4rem;
+  }
+  .hidden {
+    display: none;
+  }
+
+  /* Mobile View */
+  @media (max-width: 767px) {
+    form {
+      padding: 0.8rem;
+    }
+    .dashboard {
+      flex-direction: column;
+    }
+    table, thead, tbody, th, td, tr {
+      display: block;
+    }
+    thead {
+      display: none;
+    }
+    tr {
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      padding: 0.8rem;
+      border-radius: 6px;
+    }
+    td {
+      display: flex;
+      justify-content: space-between;
+      border: none;
+      border-bottom: 1px solid #eee;
+      padding: 0.4rem 0;
+    }
+    td:last-child {
+      border-bottom: none;
+    }
+  }
+
+  /* Tablet View */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .dashboard {
+      flex-wrap: wrap;
+    }
+    .card {
+      flex: 1 1 calc(50% - 1rem);
+    }
+  }
+
+  /* Desktop View */
+  @media (min-width: 1025px) {
+    .dashboard {
+      flex-direction: row;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Stock Management App</h1>
+</header>
+<main>
+  <section id="login-section">
+    <h2>Login</h2>
+    <form id="login-form">
+      <label>Username: <input type="text" id="username" required></label>
+      <label>Password: <input type="password" id="password" required></label>
+      <button type="submit">Login</button>
+    </form>
+  </section>
+
+  <section id="app-section" class="hidden">
+    <h2>Add / Edit Product</h2>
+    <form id="product-form">
+      <input type="hidden" id="product-id">
+      <label>Product Name: <input type="text" id="product-name" required></label>
+      <label>Price: <input type="number" id="price" min="0" step="0.01" required></label>
+      <label>Stock: <input type="number" id="stock" min="0" required></label>
+      <label>Description: <textarea id="description"></textarea></label>
+      <button type="submit">Save</button>
+    </form>
+
+    <div class="dashboard">
+      <div class="card">Total Products: <span id="total-products">0</span></div>
+      <div class="card">Total Units: <span id="total-units">0</span></div>
+      <div class="card">Last Added: <span id="last-added">N/A</span></div>
+    </div>
+
+    <input type="text" id="search" placeholder="Search products...">
+    <table id="product-table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const loginSection = document.getElementById('login-section');
+const appSection = document.getElementById('app-section');
+const loginForm = document.getElementById('login-form');
+const productForm = document.getElementById('product-form');
+const tableBody = document.querySelector('#product-table tbody');
+const searchInput = document.getElementById('search');
+const totalProductsEl = document.getElementById('total-products');
+const totalUnitsEl = document.getElementById('total-units');
+const lastAddedEl = document.getElementById('last-added');
+
+let products = JSON.parse(localStorage.getItem('products') || '[]');
+
+loginForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const user = document.getElementById('username').value;
+  const pass = document.getElementById('password').value;
+  if (user === 'admin' && pass === 'admin@123') {
+    loginSection.classList.add('hidden');
+    appSection.classList.remove('hidden');
+    renderProducts();
+  } else {
+    alert('Invalid credentials');
+  }
+});
+
+productForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('product-id').value;
+  const name = document.getElementById('product-name').value.trim();
+  const price = parseFloat(document.getElementById('price').value);
+  const stock = parseInt(document.getElementById('stock').value);
+  const desc = document.getElementById('description').value.trim();
+
+  if (!name || price < 0 || stock < 0) return alert('Invalid input');
+
+  if (id) {
+    const index = products.findIndex(p => p.id === id);
+    products[index] = { id, name, price, stock, desc };
+  } else {
+    products.push({ id: Date.now().toString(), name, price, stock, desc });
+  }
+  saveProducts();
+  productForm.reset();
+  renderProducts();
+});
+
+function renderProducts(filter = '') {
+  tableBody.innerHTML = '';
+  const filtered = products.filter(p => p.name.toLowerCase().includes(filter) || p.desc.toLowerCase().includes(filter));
+  filtered.forEach(p => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${p.name}</td>
+      <td>${p.price.toFixed(2)}</td>
+      <td>${p.stock}</td>
+      <td>${p.desc}</td>
+      <td>
+        <button onclick="editProduct('${p.id}')">Edit</button>
+        <button onclick="deleteProduct('${p.id}')">Delete</button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+  updateDashboard();
+}
+
+function saveProducts() {
+  localStorage.setItem('products', JSON.stringify(products));
+}
+
+function editProduct(id) {
+  const p = products.find(p => p.id === id);
+  document.getElementById('product-id').value = p.id;
+  document.getElementById('product-name').value = p.name;
+  document.getElementById('price').value = p.price;
+  document.getElementById('stock').value = p.stock;
+  document.getElementById('description').value = p.desc;
+}
+
+function deleteProduct(id) {
+  if (confirm('Delete this product?')) {
+    products = products.filter(p => p.id !== id);
+    saveProducts();
+    renderProducts();
+  }
+}
+
+function updateDashboard() {
+  totalProductsEl.textContent = products.length;
+  totalUnitsEl.textContent = products.reduce((sum, p) => sum + p.stock, 0);
+  lastAddedEl.textContent = products.length ? products[products.length - 1].name : 'N/A';
+}
+
+searchInput.addEventListener('input', e => {
+  renderProducts(e.target.value.toLowerCase());
+});
+</script>
+</body>
+</html>
